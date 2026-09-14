@@ -1,4 +1,4 @@
-
+-- Complete KazeUI Script for The Mimic: Book III (Cleaned, no distance/line-of-sight modifications)
 local KazeUI = KazeUI or loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/KazeHub/UI/refs/heads/main/libraryUI.txt"
 ))()
@@ -12,7 +12,7 @@ local Window = KazeUI:CreateWindow({
     Theme = "Obsidian",
     GlowStyle = "Sequence",
     GlowColor = true,
-
+    
     PopupTitle = "Welcome to Kaze Hub!",
     PopupContent = "Thank you for using my script! if you found any bug, please report it to the discord.",
     DiscordLink = "https://discord.gg/DKGRny4DD",
@@ -21,20 +21,9 @@ local Window = KazeUI:CreateWindow({
     OpenButton = {
         Icon = "79414074886215",
         Hidable = false,
-        Size = UDim2.fromOffset(65, 65)
+        Size = UDim2.fromOffset(60, 60)
     },
 })
-
-local function collectAll(parent, out, depth)
-	out = out or {}
-	depth = depth or 0
-	if not parent or depth > 15 then return out end
-	for _, child in ipairs(parent:GetChildren()) do
-		table.insert(out, child)
-		collectAll(child, out, depth + 1)
-	end
-	return out
-end
 
 local Player = Window:CreateTab({
     Title = "Player",
@@ -48,6 +37,7 @@ local LocalPlayer = Players.LocalPlayer
 
 Player:Section("Client")
 
+-- 1. Instant Prompt
 local InstantPromptEnabled = false
 local promptConnection
 
@@ -56,19 +46,19 @@ Player:Toggle({
     Default = false,
     Callback = function(s)
         InstantPromptEnabled = s
-
+        
         if promptConnection then
             promptConnection:Disconnect()
             promptConnection = nil
         end
-
+        
         if InstantPromptEnabled then
-            for _, prompt in ipairs(collectAll(Workspace)) do
+            for _, prompt in ipairs(Workspace:GetDescendants()) do
                 if prompt:IsA("ProximityPrompt") then
                     prompt.HoldDuration = 0
                 end
             end
-
+            
             promptConnection = Workspace.DescendantAdded:Connect(function(descendant)
                 if descendant:IsA("ProximityPrompt") then
                     descendant.HoldDuration = 0
@@ -78,6 +68,7 @@ Player:Toggle({
     end
 })
 
+-- 2. FullBright
 local Lighting = (typeof(cloneref) == "function" and cloneref(game:GetService("Lighting"))) or game:GetService("Lighting")
 local FB_ENABLED = false
 local fbConnection
@@ -92,11 +83,11 @@ Player:Toggle({
     Default = false,
     Callback = function(s)
         FB_ENABLED = s
-        if fbConnection then
-            fbConnection:Disconnect()
+        if fbConnection then 
+            fbConnection:Disconnect() 
             fbConnection = nil
         end
-
+        
         if FB_ENABLED then
             local function applyBright()
                 Lighting.Ambient = Color3.fromRGB(178, 178, 178)
@@ -105,7 +96,7 @@ Player:Toggle({
                 Lighting.ClockTime = 14
                 Lighting.GlobalShadows = false
             end
-
+            
             applyBright()
             fbConnection = Lighting.Changed:Connect(applyBright)
         else
@@ -118,6 +109,7 @@ Player:Toggle({
     end
 })
 
+-- 3. Noclip
 local NoclipEnabled = false
 local noclipConnection
 
@@ -126,46 +118,28 @@ Player:Toggle({
     Default = false,
     Callback = function(s)
         NoclipEnabled = s
-
+        
         if noclipConnection then
             noclipConnection:Disconnect()
             noclipConnection = nil
         end
-
+        
         if NoclipEnabled then
-            local _ncChar, _ncParts = nil, {}
-            local function _ncRefresh()
-                local c = LocalPlayer.Character
-                if c == _ncChar and #_ncParts > 0 then return end
-                _ncChar = c
-                _ncParts = {}
-                if c then
-                    for _, p in ipairs(c:GetChildren()) do
-                        if p:IsA("BasePart") then table.insert(_ncParts, p) end
-                        for _, c2 in ipairs(p:GetChildren()) do
-                            if c2:IsA("BasePart") then table.insert(_ncParts, c2) end
+            noclipConnection = RunService.Stepped:Connect(function()
+                local character = LocalPlayer.Character
+                if character then
+                    for _, part in ipairs(character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            if part.CanCollide then part.CanCollide = false end
                         end
                     end
-                end
-            end
-            LocalPlayer.CharacterAdded:Connect(function()
-                _ncChar = nil
-                _ncParts = {}
-                task.defer(function() task.wait(0.05) _ncRefresh() end)
-            end)
-            _ncRefresh()
-            noclipConnection = RunService.Stepped:Connect(function()
-                if not NoclipEnabled then return end
-                if LocalPlayer.Character ~= _ncChar then _ncRefresh() end
-                for i = 1, #_ncParts do
-                    local p = _ncParts[i]
-                    if p and p.Parent and p.CanCollide then p.CanCollide = false end
                 end
             end)
         end
     end
 })
 
+-- 4. TP Walk
 local TPWalkSpeed = 1
 local TPWalkEnabled = false
 local tpWalkConnection
@@ -197,7 +171,7 @@ Player:Toggle({
                 if character then
                     local hrp = character:FindFirstChild("HumanoidRootPart")
                     local humanoid = character:FindFirstChildOfClass("Humanoid")
-
+                    
                     if hrp and humanoid and humanoid.MoveDirection.Magnitude > 0 then
                         hrp.CFrame = hrp.CFrame + (humanoid.MoveDirection * (TPWalkSpeed * 0.05))
                     end
@@ -207,6 +181,7 @@ Player:Toggle({
     end
 })
 
+-- 5. Fly
 local TargetFlySpeed = 16
 local FLY_ENABLED = false
 local flyConnection
@@ -226,17 +201,17 @@ Player:Toggle({
     Default = false,
     Callback = function(state)
         FLY_ENABLED = state
-
+        
         local function stopFly()
-            if flyConnection then
-                flyConnection:Disconnect()
-                flyConnection = nil
+            if flyConnection then 
+                flyConnection:Disconnect() 
+                flyConnection = nil 
             end
-
+            
             local character = LocalPlayer.Character
             local hrp = character and character:FindFirstChild("HumanoidRootPart")
             local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-
+            
             if humanoid then
                 humanoid.PlatformStand = false
             end
@@ -246,33 +221,33 @@ Player:Toggle({
                 hrp.AssemblyLinearVelocity = Vector3.zero
             end
         end
-
+        
         stopFly()
-
+        
         if FLY_ENABLED then
             local camera = Workspace.CurrentCamera
-
+            
             flyConnection = RunService.RenderStepped:Connect(function(dt)
                 local character = LocalPlayer.Character
                 local hrp = character and character:FindFirstChild("HumanoidRootPart")
                 local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-
+                
                 if hrp and humanoid then
                     local moveDir = humanoid.MoveDirection
-
+                    
                     if moveDir.Magnitude > 0 then
                         hrp.Anchored = false
                         hrp.AssemblyLinearVelocity = Vector3.zero
                         hrp.AssemblyAngularVelocity = Vector3.zero
-
+                        
                         local cameraCF = camera.CFrame
                         local relativeVector = cameraCF:VectorToObjectSpace(moveDir)
                         local flyDirection = (cameraCF.RightVector * relativeVector.X) + (cameraCF.LookVector * -relativeVector.Z)
-
+                        
                         if flyDirection.Magnitude > 0 then
                             flyDirection = flyDirection.Unit
                         end
-
+                        
                         hrp.CFrame = CFrame.lookAlong(hrp.Position, flyDirection) + (flyDirection * (TargetFlySpeed * dt))
                     else
                         hrp.AssemblyLinearVelocity = Vector3.zero
@@ -319,11 +294,11 @@ local function startAutoPrompt()
 		while isAutoPromptToggled do
 			local rootPart = getCharacterRoot()
 			local yenFolder = Workspace:FindFirstChild("Yen")
-
+			
 			if rootPart and yenFolder then
 				for _, item in ipairs(yenFolder:GetChildren()) do
 					if not isAutoPromptToggled then break end
-
+					
 					local targetPart = nil
 					if item:IsA("BasePart") then
 						targetPart = item
@@ -345,7 +320,7 @@ local function startAutoPrompt()
 					end
 				end
 			end
-
+			
 			task.wait(0.05)
 		end
 		autoPromptTask = nil
@@ -515,7 +490,7 @@ GameTab:Button({
                 end)
             end
 
-            for _, obj in ipairs(collectAll(Workspace)) do
+            for _, obj in ipairs(Workspace:GetDescendants()) do
                 if DISABLE_PARTICLES and (obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles")) then
                     obj.Enabled = false
                 elseif DISABLE_TEXTURES and (obj:IsA("Decal") or obj:IsA("Texture")) then
@@ -563,23 +538,27 @@ GameTab:Toggle({
     end
 })
 
+--------------------------------------------------
+-- Egao Encounter Section UI (Integrated inside GameTab)
+--------------------------------------------------
 local EgaoSection = GameTab:SectionUI({
     Title = "Egao Encounter",
     Open = false
 })
 
+-- Helper function to fire the nearest TouchInterest (if needed later)
 local function fireNearestTouchInterest(position)
     local players = game:GetService("Players")
     local char = players.LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    for _, obj in ipairs(collectAll(workspace)) do
+    for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
             local touchInterest = obj:FindFirstChildOfClass("TouchTransmitter")
             if touchInterest then
                 local dist = (obj.Position - position).Magnitude
-                if dist <= 15 then
+                if dist <= 15 then 
                     pcall(function()
                         firetouchinterest(hrp, obj, 0)
                         task.wait(0.05)
@@ -598,15 +577,15 @@ EgaoSection:Button({
             local plr = game:GetService("Players").LocalPlayer
             local char = plr.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
+            
             if hrp then
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.AssemblyAngularVelocity = Vector3.zero
-
+                
                 hrp.CFrame = CFrame.new(
-                    -26.5377808, 22.3487396, -50.0676498,
-                    0, 0, 1,
-                    0, 1, -0,
+                    -26.5377808, 22.3487396, -50.0676498, 
+                    0, 0, 1, 
+                    0, 1, -0, 
                     -1, 0, 0
                 )
             end
@@ -621,15 +600,15 @@ EgaoSection:Button({
             local plr = game:GetService("Players").LocalPlayer
             local char = plr.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
+            
             if hrp then
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.AssemblyAngularVelocity = Vector3.zero
-
+                
                 hrp.CFrame = CFrame.new(
-                    -3528.81519, 53.2901878, 274.508606,
-                    -0.49389863, 0, 0.869519591,
-                    0, 1, 0,
+                    -3528.81519, 53.2901878, 274.508606, 
+                    -0.49389863, 0, 0.869519591, 
+                    0, 1, 0, 
                     -0.869519591, 0, -0.49389863
                 )
             end
@@ -644,15 +623,15 @@ EgaoSection:Button({
             local plr = game:GetService("Players").LocalPlayer
             local char = plr.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
+            
             if hrp then
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.AssemblyAngularVelocity = Vector3.zero
-
+                
                 hrp.CFrame = CFrame.new(
-                    -3377.18066, -290.173523, 4633.80371,
-                    0, 0, 1,
-                    0, 1, -0,
+                    -3377.18066, -290.173523, 4633.80371, 
+                    0, 0, 1, 
+                    0, 1, -0, 
                     -1, 0, 0
                 )
             end
@@ -667,19 +646,19 @@ EgaoSection:Toggle({
     Default = false,
     Callback = function(state)
         lookingActive = state
-
+        
         task.spawn(function()
             local runService = game:GetService("RunService")
             local players = game:GetService("Players")
             local camera = workspace.CurrentCamera
             local notified = false
-
+            
             while lookingActive do
                 local egaoRig = workspace:FindFirstChild("EgaoEventRig")
                 local player = players.LocalPlayer
                 local char = player.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
+                
                 if egaoRig then
                     if not notified then
                         notified = true
@@ -701,10 +680,10 @@ EgaoSection:Toggle({
                     elseif egaoRig:IsA("BasePart") then
                         targetPos = egaoRig.Position
                     end
-
+                    
                     if targetPos then
                         camera.CFrame = CFrame.new(camera.CFrame.Position, targetPos)
-
+                        
                         if hrp then
                             local lookVector = Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z)
                             hrp.CFrame = CFrame.lookAt(hrp.Position, lookVector)
@@ -713,13 +692,17 @@ EgaoSection:Toggle({
                 else
                     notified = false
                 end
-
-                runService.RenderStepped:Wait()
+                
+                task.wait(0.05)
             end
         end)
     end
 })
 
+
+-- ==========================================
+-- CITY TAB SETUP
+-- ==========================================
 local City = Window:CreateTab({
     Title = "City",
     Icon = "Building-2"
@@ -731,15 +714,15 @@ local function mahanapAngAktibongTarget()
     local section1 = Workspace:FindFirstChild("Section1") or Workspace:FindFirstChild("Section2")
     if not section1 then return nil end
 
-    for _, object in ipairs(collectAll(section1)) do
+    for _, object in ipairs(section1:GetDescendants()) do
         if object:IsA("Model") and (object.Name == "Gata" or object.Name == "Gata2") then
             local rootPart = object:FindFirstChild("HumanoidRootPart")
             local humanoid = object:FindFirstChildOfClass("Humanoid")
-
+            
             if rootPart and (not humanoid or humanoid.Health > 0) then
                 local iconFolder = rootPart:FindFirstChild("Icon")
                 local imageLabel = iconFolder and iconFolder:FindFirstChildOfClass("ImageLabel")
-
+                
                 if imageLabel and imageLabel.Visible == true then
                     return object
                 end
@@ -755,31 +738,31 @@ City:Button({
         local plr = Players.LocalPlayer
         local character = plr.Character or plr.CharacterAdded:Wait()
         if not character then return end
-
+        
         local myRoot = character:FindFirstChild("HumanoidRootPart")
         if not myRoot then return end
-
+        
         task.spawn(function()
             while true do
                 local targetGata = mahanapAngAktibongTarget()
                 if not targetGata then break end
-
+                
                 local targetRoot = targetGata:FindFirstChild("HumanoidRootPart")
                 local humanoid = targetGata:FindFirstChildOfClass("Humanoid")
                 local hitRemote = targetGata:FindFirstChild("RemoteEvent") or targetGata:FindFirstChildOfClass("RemoteEvent")
-
+                
                 local targetIconFolder = targetRoot and targetRoot:FindFirstChild("Icon")
                 local targetImageLabel = targetIconFolder and targetIconFolder:FindFirstChildOfClass("ImageLabel")
-
+                
                 while targetGata and targetGata.Parent and targetRoot and (not humanoid or humanoid.Health > 0) and targetImageLabel and targetImageLabel.Visible == true do
                     character = plr.Character
                     if not character or not character.Parent then break end
                     myRoot = character:FindFirstChild("HumanoidRootPart")
                     if not myRoot then break end
-
+                    
                     local gataPivot = targetGata:GetPivot()
                     character:PivotTo(gataPivot * CFrame.new(0, 15, 0))
-
+                    
                     for _ = 1, 10 do
                         task.spawn(function()
                             if hitRemote then
@@ -789,10 +772,10 @@ City:Button({
                             end
                         end)
                     end
-
+                    
                     task.wait(0.1)
                 end
-
+                
                 task.wait(0.1)
             end
         end)
@@ -808,14 +791,14 @@ City:Button({
 
         local section1 = Workspace:FindFirstChild("Section1") or Workspace:FindFirstChild("Section2")
         local deadCiviliansFolder = section1 and section1:FindFirstChild("DeadCivilians")
-
+        
         if not deadCiviliansFolder then return end
 
         task.spawn(function()
-            for _, prompt in ipairs(collectAll(deadCiviliansFolder)) do
+            for _, prompt in ipairs(deadCiviliansFolder:GetDescendants()) do
                 character = plr.Character
                 if not character or not character.Parent then break end
-
+                
                 if prompt:IsA("ProximityPrompt") then
                     local targetPart = prompt.Parent
                     if targetPart and targetPart:IsA("BasePart") then
@@ -974,6 +957,7 @@ City:Button({
                 end
             end
 
+            -- 1. BoltCutter
             tpAndFirePrompt(function()
                 local s1 = Workspace:FindFirstChild("Section1")
                 local gatePart = s1 and s1:FindFirstChild("SchoolGatePart")
@@ -983,6 +967,7 @@ City:Button({
 
             task.wait(0.4)
 
+            -- 2. Chain
             local chainObj, chainPrompt
             local startTime = tick()
             while (not chainObj or not chainPrompt) and (tick() - startTime < 10) do
@@ -1043,6 +1028,7 @@ City:Button({
 
             task.wait(0.4)
 
+            -- 3. School Door PROXPART
             tpAndFirePrompt(function()
                 local s2 = Workspace:FindFirstChild("Section2")
                 local school = s2 and s2:FindFirstChild("School")
@@ -1066,7 +1052,7 @@ School:Button({
             local section2 = Workspace:FindFirstChild("Section2")
             local itemsFolder = section2 and section2:FindFirstChild("Items")
             local bandage = itemsFolder and itemsFolder:FindFirstChild("Bandage")
-
+            
             local npcFolder = section2 and section2:FindFirstChild("NPC")
             local hideo3 = npcFolder and npcFolder:FindFirstChild("Hideo3")
 
@@ -1279,7 +1265,7 @@ School:Button({
                     local spiderPos = spiderPivot.Position
 
                     local offsetX = 6
-                    local offsetY = -3
+                    local offsetY = -3 
                     local offsetZ = 4
 
                     if spiderPos.Y < 5 then
@@ -1333,7 +1319,7 @@ School:Button({
                         local spiderPos = spiderPivot.Position
 
                         local offsetX = 6
-                        local offsetY = -3
+                        local offsetY = -3 
                         local offsetZ = 4
 
                         if spiderPos.Y < 5 then
@@ -1446,13 +1432,15 @@ Forest:Button({
                 hrp.Anchored = false
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.AssemblyAngularVelocity = Vector3.zero
-
+                
+                -- Instant teleport to start position
                 char:PivotTo(startCF)
                 task.wait(0.3)
 
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.AssemblyAngularVelocity = Vector3.zero
-
+                
+                -- Instant teleport to end position (No tweening)
                 char:PivotTo(endCF)
             end
         end)
@@ -1487,9 +1475,9 @@ KazeUI:SafeCall(function()
                 local noclipConnection = RunService.Stepped:Connect(function()
                     local char = plr.Character
                     if char and char.Parent then
-                        for _, part in ipairs(collectAll(char)) do
+                        for _, part in ipairs(char:GetDescendants()) do
                             if part:IsA("BasePart") then
-                                part.CanCollide = false
+                                if part.CanCollide then part.CanCollide = false end
                             end
                         end
                     end
@@ -1523,8 +1511,10 @@ KazeUI:SafeCall(function()
                     hrp.AssemblyAngularVelocity = Vector3.zero
                     character:PivotTo(CFrame.new(pos))
 
+                    -- TP → wait 0.2
                     task.wait(0.2)
 
+                    -- Scan closest pillar
                     local targetPillar
                     local shortestDist = math.huge
 
@@ -1545,7 +1535,7 @@ KazeUI:SafeCall(function()
                     end
 
                     if targetPillar then
-
+                        -- Scan prompt AFTER teleport
                         local prompt = targetPillar:FindFirstChildWhichIsA("ProximityPrompt", true)
 
                         local startTime = tick()
@@ -1555,7 +1545,7 @@ KazeUI:SafeCall(function()
                         end
 
                         if prompt then
-
+                            -- Wait 0.1 before firing prompt
                             task.wait(0.1)
 
                             pcall(function()
@@ -1564,6 +1554,7 @@ KazeUI:SafeCall(function()
                                 prompt.HoldDuration = 0
                             end)
 
+                            -- Fire proximity prompt
                             if fireproximityprompt then
                                 pcall(function()
                                     fireproximityprompt(prompt, 0)
@@ -1576,6 +1567,7 @@ KazeUI:SafeCall(function()
                                 end)
                             end
 
+                            -- Immediately fire RemoteServer 3×
                             for _ = 1, 3 do
                                 pcall(function()
                                     Reliable:FireServer(
@@ -1595,6 +1587,7 @@ KazeUI:SafeCall(function()
                     task.wait(0.15)
                 end
 
+                -- Post-generator sequence
                 character = plr.Character
                 hrp = character and character:FindFirstChild("HumanoidRootPart")
 
@@ -1685,9 +1678,10 @@ IJO:Button({
             local plr = game:GetService("Players").LocalPlayer
             local char = plr.Character or plr.CharacterAdded:Wait()
             local hrp = char:WaitForChild("HumanoidRootPart", 3)
-
+            
             if not hrp then return end
 
+            -- Helper function to find the target object first, teleport to it, wait for prompt, and fire it
             local function tpToObjectAndFire(targetPathResolver)
                 hrp.Anchored = false
                 hrp.AssemblyLinearVelocity = Vector3.zero
@@ -1697,10 +1691,11 @@ IJO:Button({
                 local prompt = nil
                 local startTime = tick()
 
+                -- Step 1: Wait for the target object and prompt to exist in workspace
                 while (not targetObj or not prompt) and (tick() - startTime < 10) do
                     targetObj = targetPathResolver()
                     if targetObj then
-                        prompt = targetObj:FindFirstChildOfClass("ProximityPrompt")
+                        prompt = targetObj:FindFirstChildOfClass("ProximityPrompt") 
                             or targetObj:FindFirstChildWhichIsA("ProximityPrompt", true)
                     end
                     if not prompt then
@@ -1713,12 +1708,13 @@ IJO:Button({
                     return false
                 end
 
+                -- Step 2: Teleport directly using the target object's position/pivot
                 char = plr.Character
                 hrp = char and char:FindFirstChild("HumanoidRootPart")
                 if char and hrp then
                     hrp.AssemblyLinearVelocity = Vector3.zero
                     hrp.AssemblyAngularVelocity = Vector3.zero
-
+                    
                     local success, targetCF = pcall(function()
                         if targetObj:IsA("Model") then
                             return targetObj:GetPivot() + Vector3.new(0, 2, 0)
@@ -1735,11 +1731,13 @@ IJO:Button({
 
                 task.wait(0.3)
 
+                -- Step 3: Wait explicitly until prompt is enabled and ready
                 local promptStart = tick()
                 while (not prompt.Parent or not prompt.Enabled) and (tick() - promptStart < 5) do
                     task.wait(0.05)
                 end
 
+                -- Step 4: Fire the prompt safely
                 if fireproximityprompt then
                     fireproximityprompt(prompt, 0)
                 elseif directFirePrompt then
@@ -1765,6 +1763,7 @@ IJO:Button({
                 return true
             end
 
+            -- Step 1: Fire KeyCard (IDCARD)
             tpToObjectAndFire(function()
                 local s4 = Workspace:FindFirstChild("Section4")
                 local lab = s4 and s4:FindFirstChild("Lab")
@@ -1775,6 +1774,7 @@ IJO:Button({
 
             task.wait(0.4)
 
+            -- Step 2: Fire SFXPart prompt
             tpToObjectAndFire(function()
                 local s4 = Workspace:FindFirstChild("Section4")
                 local lab = s4 and s4:FindFirstChild("Lab")
@@ -1785,6 +1785,7 @@ IJO:Button({
 
             task.wait(0.4)
 
+            -- Step 3: Fire MetalDoor ProxPart prompt
             tpToObjectAndFire(function()
                 local s4 = Workspace:FindFirstChild("Section4")
                 local lab = s4 and s4:FindFirstChild("Lab")
@@ -1795,6 +1796,7 @@ IJO:Button({
 
             task.wait(0.4)
 
+            -- Step 4: Fire Computer PromptPart prompt
             tpToObjectAndFire(function()
                 local s4 = Workspace:FindFirstChild("Section4")
                 local lab = s4 and s4:FindFirstChild("Lab")
@@ -1815,6 +1817,7 @@ IJO:Button({
         local hrp = character and character:FindFirstChild("HumanoidRootPart")
         if not character or not hrp then return end
 
+        -- Safe wait for Section4, Lab, CleanseRoomObjective, and Valves to stream in
         local section4, lab, cleanseRoom, valvesFolder
         local startTime = tick()
         repeat
@@ -1825,7 +1828,7 @@ IJO:Button({
             if not valvesFolder then
                 task.wait(0.5)
             end
-        until valvesFolder or (tick() - startTime > 10)
+        until valvesFolder or (tick() - startTime > 10) -- Timeout after 10 seconds if not loaded
 
         if not valvesFolder then return end
 
@@ -1854,6 +1857,7 @@ IJO:Button({
                 hrp = character and character:FindFirstChild("HumanoidRootPart")
                 if not character or not hrp then break end
 
+                -- 1. TP to the valve using WorldPivot
                 local modelCF = valveModel.WorldPivot
                 local targetCF = modelCF + Vector3.new(0, 1, 3)
 
@@ -1864,17 +1868,18 @@ IJO:Button({
 
                 task.wait(0.15)
 
+                -- 2. Find and fire every Turner inside this valve
                 for _, turner in ipairs(valveModel:GetChildren()) do
                     if turner.Name == "Turners" then
                         local prompt, targetPart
-                        for _, desc in ipairs(collectAll(turner)) do
+                        for _, desc in ipairs(turner:GetDescendants()) do
                             if desc:IsA("ProximityPrompt") then
                                 prompt = desc
                                 local p = desc.Parent
-                                if p and p:IsA("BasePart") then
+                                if p and p:IsA("BasePart") then 
                                     targetPart = p
-                                elseif p and p.Parent and p.Parent:IsA("BasePart") then
-                                    targetPart = p.Parent
+                                elseif p and p.Parent and p.Parent:IsA("BasePart") then 
+                                    targetPart = p.Parent 
                                 end
                                 break
                             end
@@ -1966,6 +1971,7 @@ IJO:Button({
                     continue
                 end
 
+                -- Refresh character after respawn
                 char = player.Character
                 hrp = char and char:FindFirstChild("HumanoidRootPart")
 
@@ -2009,6 +2015,7 @@ IJO:Button({
                     end
                 end
 
+                -- RoundComplete ×2
                 pcall(function()
                     PacketModule.send.ShapeTerminal.RoundComplete(term)
                     PacketModule.send.ShapeTerminal.RoundComplete(term)
@@ -2017,6 +2024,7 @@ IJO:Button({
                 task.wait(0.08)
             end
 
+            -- Release all terminals
             for _, term in ipairs(terminals) do
                 pcall(function()
                     PacketModule.send.ShapeTerminal.Release(term)
@@ -2040,7 +2048,8 @@ IJO:Button({
         task.spawn(function()
             local plr = Players.LocalPlayer
             local workspace = game:GetService("Workspace")
-
+            
+            -- Locate target path: workspace.Section4.Lab.ExitToStairs.EXIT
             local section4 = workspace:FindFirstChild("Section4")
             local lab = section4 and section4:FindFirstChild("Lab")
             local exitToStairs = lab and lab:FindFirstChild("ExitToStairs")
@@ -2049,7 +2058,8 @@ IJO:Button({
             if exitObj then
                 local char = plr.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
+                
+                -- Teleport to the object/model/part
                 local targetPart = exitObj:IsA("BasePart") and exitObj or exitObj:FindFirstChildWhichIsA("BasePart", true) or exitObj:GetPrimaryPart()
                 if char and hrp and targetPart then
                     hrp.AssemblyLinearVelocity = Vector3.zero
@@ -2059,7 +2069,8 @@ IJO:Button({
 
                 task.wait(0.2)
 
-                local prompt = exitObj:FindFirstChildOfClass("ProximityPrompt")
+                -- Scan the prompt inside that object
+                local prompt = exitObj:FindFirstChildOfClass("ProximityPrompt") 
                     or exitObj:FindFirstChildWhichIsA("ProximityPrompt", true)
 
                 if prompt then
@@ -2101,17 +2112,20 @@ local function skipStairsFunction()
     local plr = Players.LocalPlayer
     local character = plr.Character or plr.CharacterAdded:Wait()
     if not character then return end
-
+    
     local myRoot = character:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
-
+    
+    -- 1. Teleport muna sa unang coordinates
     myRoot.CFrame = CFrame.new(-1857.36, -340.11, 4673.78)
-
+    
+    -- Mag-antay ng saglit para siguradong nag-load ang posisyon
     task.wait(0.1)
-
+    
+    -- 2. Tween papunta sa ikalawang coordinates
     local targetPosition = CFrame.new(-1832.44, -340.11, 4672.79)
-    local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
-
+    local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear) -- Pwede mong baguhin ang "1" kung gusto mong pabilisin o bagalan ang tween
+    
     local tween = TweenService:Create(myRoot, tweenInfo, {CFrame = targetPosition})
     tween:Play()
 end
@@ -2127,6 +2141,9 @@ WaterTab:Button({
     end
 })
 
+-------------------------------------------------------------
+-- WATER TAB
+-------------------------------------------------------------
 WaterTab:Section("Main")
 
 local Players = game:GetService("Players")
@@ -2175,6 +2192,9 @@ local function firePrompt(prompt)
     return true
 end
 
+-------------------------------------------------------------
+-- POWER SWITCH
+-------------------------------------------------------------
 WaterTab:Button({
     Title = "Power Switch",
     Callback = function()
@@ -2218,6 +2238,9 @@ WaterTab:Button({
     end
 })
 
+-------------------------------------------------------------
+-- AUTO WIREBOXES
+-------------------------------------------------------------
 WaterTab:Button({
     Title = "Auto WireBoxes",
     Callback = function()
@@ -2268,6 +2291,9 @@ WaterTab:Button({
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.AssemblyAngularVelocity = Vector3.zero
 
+                -------------------------------------------------
+                -- TELEPORT
+                -------------------------------------------------
                 if wireBox:IsA("BasePart") then
                     character:PivotTo(
                         wireBox.CFrame + Vector3.new(0, 0, 4)
@@ -2280,6 +2306,9 @@ WaterTab:Button({
 
                 task.wait(0.15)
 
+                -------------------------------------------------
+                -- CLAIM
+                -------------------------------------------------
                 pcall(function()
                     Reliable:FireServer(
                         "Section5/WireBoxClaim",
@@ -2289,6 +2318,9 @@ WaterTab:Button({
 
                 task.wait(0.05)
 
+                -------------------------------------------------
+                -- OPEN LID
+                -------------------------------------------------
                 local lid = wireBox:FindFirstChild("Lid")
 
                 if lid then
@@ -2302,6 +2334,9 @@ WaterTab:Button({
 
                 task.wait(0.1)
 
+                -------------------------------------------------
+                -- PROMPT
+                -------------------------------------------------
                 local prompt = wireBox:FindFirstChildWhichIsA(
                     "ProximityPrompt",
                     true
@@ -2313,6 +2348,9 @@ WaterTab:Button({
 
                 task.wait(0.1)
 
+                -------------------------------------------------
+                -- CUT WIRES
+                -------------------------------------------------
                 local cuttable = wireBox:FindFirstChild("Cuttable")
 
                 if cuttable then
@@ -2328,6 +2366,9 @@ WaterTab:Button({
                     end
                 end
 
+                -------------------------------------------------
+                -- COMPLETE
+                -------------------------------------------------
                 pcall(function()
                     Reliable:FireServer(
                         "Section5/WireBoxComplete",
