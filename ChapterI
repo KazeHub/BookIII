@@ -597,6 +597,7 @@ GameTab:Toggle({
 
 GameTab:Button({
     Title = "Collect Yen",
+    Description = "Don't use this at Stair/Water Stage (I'll Fix it soon)",
     Callback = function()
         if not isEspToggled then return end
 
