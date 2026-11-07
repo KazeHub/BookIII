@@ -186,19 +186,6 @@ CityMain:Toggle({
     end
 })
 
-CityMain:Button({
-    Title = "Grab Boltcutter",
-    Description = "",
-    Callback = function()
-        task.spawn(function()
-            local RS = game:GetService("ReplicatedStorage")
-            local packet = RS:FindFirstChild("modules") and RS.modules:FindFirstChild("Packet")
-            local reliable = packet and packet:FindFirstChild("Reliable")
-            if reliable then pcall(function() reliable:FireServer("Section1/BoltCutterPickedUp") end) end
-        end)
-    end
-})
-
 local espGruntsEnabled = false
 local gruntsHighlights = {}
 CityESP:Toggle({
