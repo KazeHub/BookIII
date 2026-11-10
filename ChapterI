@@ -480,10 +480,12 @@ GameYen:Button({
         task.spawn(function()
             local char = game:GetService("Players").LocalPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local yenFolder = workspace:FindFirstChild("Yen")
+            local mimicFolder = workspace:FindFirstChild("MimicCurrencySpawns")
+            local yenFolder = mimicFolder and mimicFolder:FindFirstChild("Yen")
             if not hrp or not yenFolder then return end
 
             local RS = game:GetService("RunService")
+            local originalCFrame = hrp.CFrame
 
             while true do
                 local items = yenFolder:GetChildren()
@@ -516,6 +518,10 @@ GameYen:Button({
                     RS.Heartbeat:Wait()
                 end
             end
+
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            hrp.AssemblyAngularVelocity = Vector3.zero
+            char:PivotTo(originalCFrame)
         end)
     end
 })
